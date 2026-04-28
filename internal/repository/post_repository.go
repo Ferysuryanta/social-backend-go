@@ -17,9 +17,31 @@ func NewPostRepository(db *pgxpool.Pool) *PostRepository {
 
 func (r *PostRepository) Create(ctx context.Context, post *domain.Post) error {
 
-	query := `INSERT INTO posts(id, user_id, content) VALUES ($1, $2, $3)`
-	_, err := r.db.Exec(ctx, query, post.ID, post.UserID, post.Content)
+	query := `INSERT INTO posts(id, user_id, content, created_at) VALUES ($1, $2, $3, $4)`
+	_, err := r.db.Exec(ctx, query, post.ID, post.UserID, post.Content, post.CreatedAt)
 	return err
+}
+
+func (r *PostRepository) FindAll(ctx context.Context) ([]*domain.Post, error) {
+
+	rows, err := r.db.Query(ctx, `SELECT id, user_id, content, created_at FROM posts ORDER BY created_at DESC`)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var posts []*domain.Post
+	for rows.Next() {
+		var post domain.Post
+		err := rows.Scan(&post.ID, &post.UserID, &post.Content, &post.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+
+		posts = append(posts, &post)
+	}
+	return posts, nil
 }
 
 func (r *PostRepository) FindByID(ctx context.Context, id string) (*domain.Post, error) {
@@ -51,4 +73,10 @@ func (r *PostRepository) GetFeed(ctx context.Context) ([]domain.Post, error) {
 	}
 
 	return posts, nil
+}
+
+func (r *PostRepository) Delete(ctx context.Context, id string, userID string) error {
+	query := `DELETE FROM posts WHERE id = $1 AND user_id = $2`
+	_, err := r.db.Exec(ctx, query, id, userID)
+	return err
 }

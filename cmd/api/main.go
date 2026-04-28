@@ -33,6 +33,10 @@ func main() {
 	authService := service.NewAuthService(repo, workerPool)
 	authHandler := handler.NewAuthHandler(authService)
 
+	postRepo := repository.NewPostRepository(config.DB)
+	postService := service.NewPostService(postRepo)
+	postHandler := handler.NewPostHandler(postService)
+
 	r := gin.Default()
 
 	r.POST("/register", authHandler.Register)
@@ -44,6 +48,11 @@ func main() {
 	protected.GET("/me", func(c *gin.Context) {
 		c.JSON(200, gin.H{"user_id": c.GetString("user_id")})
 	})
+
+	protected.POST("/posts", postHandler.Create)
+	protected.GET("/posts", postHandler.Feed)
+	protected.GET("/posts/:id", postHandler.GetByID)
+	protected.DELETE("/posts/:id", postHandler.DeleteById)
 
 	if err := r.Run("localhost:8080"); err != nil {
 		log.Fatal(err)
