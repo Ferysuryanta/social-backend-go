@@ -26,10 +26,20 @@ func NewWorkerPool(size int) *WorkerPool {
 
 func (wp *WorkerPool) startWorker(id int) {
 	for job := range wp.jobQueue {
-		if job != nil {
-			job()
+		if job == nil {
 			wp.wg.Done()
+			continue
 		}
+
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					println("Worker panic recovered")
+				}
+				wp.wg.Done()
+			}()
+			job()
+		}()
 	}
 }
 

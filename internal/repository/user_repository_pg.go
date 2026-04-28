@@ -2,8 +2,10 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"social-backend/internal/domain"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -11,7 +13,7 @@ type userRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewUserRepository(db *pgxpool.Pool) domain.UserRepository {
+func NewUserRepository(db *pgxpool.Pool) UserRepository {
 	return &userRepository{db: db}
 }
 
@@ -29,6 +31,12 @@ func (r *userRepository) FindByEmail(ctx context.Context, email string) (*domain
 	err := r.db.QueryRow(context.Background(), query, email).
 		Scan(&user.ID, &user.Email, &user.Password)
 
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
 	return &user, err
 
 }
